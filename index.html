@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro simple</title>
+  <title>Test Click</title>
 
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      max-width: 500px;
+      max-width: 400px;
       margin: auto;
+      text-align: center;
     }
 
     button {
@@ -20,57 +21,33 @@
       margin-top: 10px;
     }
 
-    ul {
+    #log {
       margin-top: 20px;
+      text-align: left;
     }
   </style>
 </head>
 
 <body>
 
-  <h2>Registro</h2>
+  <h2>Prueba de botones</h2>
 
-  <button id="btnA">A</button>
-  <button id="btnB">B</button>
+  <button id="btnA">PIPÍ</button>
+  <button id="btnB">CACA</button>
 
-  <ul id="lista"></ul>
+  <div id="log"></div>
 
   <script>
-    let registros = JSON.parse(localStorage.getItem("registros") || "[]");
-
-    const lista = document.getElementById("lista");
+    const log = document.getElementById("log");
 
     function guardar(tipo) {
-      const dato = {
-        tipo: tipo,
-        fecha: new Date().toLocaleString("es-AR")
-      };
-
-      registros.push(dato);
-      localStorage.setItem("registros", JSON.stringify(registros));
-
-      render();
+      const ahora = new Date().toLocaleString("es-AR");
+      log.innerHTML += "<div>" + tipo + " - " + ahora + "</div>";
+      console.log("Click:", tipo, ahora);
     }
 
-    function render() {
-      lista.innerHTML = "";
-
-      registros.forEach(r => {
-        const li = document.createElement("li");
-        li.textContent = r.tipo + " - " + r.fecha;
-        lista.appendChild(li);
-      });
-    }
-
-    document.getElementById("btnA").addEventListener("click", function () {
-      guardar("A");
-    });
-
-    document.getElementById("btnB").addEventListener("click", function () {
-      guardar("B");
-    });
-
-    render();
+    document.getElementById("btnA").addEventListener("click", () => guardar("PIPÍ"));
+    document.getElementById("btnB").addEventListener("click", () => guardar("CACA"));
   </script>
 
 </body>
