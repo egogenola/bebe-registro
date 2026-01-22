@@ -3,15 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRUEBA</title>
+  <title>Registro Bebé</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    #log {
+      margin-top: 20px;
+      font-size: 14px;
+      background: #f4f4f4;
+      padding: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-  <h1>PRUEBA SIMPLE</h1>
+  <h2>Registro</h2>
 
-  <button onclick="alert('CLICK PIPI')">PIPÍ</button>
-  <button onclick="alert('CLICK CACA')">CACA</button>
+  <button onclick="guardar('PIPÍ')">PIPÍ</button>
+  <button onclick="guardar('CACA')">CACA</button>
+
+  <div id="log"></div>
+
+  <script>
+    let registros = JSON.parse(localStorage.getItem("registros") || "[]");
+    const log = document.getElementById("log");
+
+    function guardar(tipo) {
+      const r = {
+        tipo: tipo,
+        fecha: new Date().toISOString()
+      };
+
+      registros.push(r);
+      localStorage.setItem("registros", JSON.stringify(registros));
+      render();
+    }
+
+    function render() {
+      log.innerHTML = "<b>Registros:</b><br>";
+
+      registros.forEach(r => {
+        const f = new Date(r.fecha).toLocaleString("es-AR");
+        log.innerHTML += `${r.tipo} – ${f}<br>`;
+      });
+    }
+
+    render();
+  </script>
 
 </body>
 </html>
