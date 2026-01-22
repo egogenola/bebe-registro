@@ -1,174 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro Bebé</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro diario</title>
 
-<style>
-body {
-  font-family: system-ui, sans-serif;
-  text-align: center;
-  padding: 15px;
-}
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-button {
-  font-size: 18px;
-  padding: 12px 20px;
-  margin: 8px;
-  border-radius: 10px;
-  border: none;
-}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      max-width: 600px;
+      margin: auto;
+    }
 
-#pipi { background: #4fc3f7; }
-#caca { background: #a1887f; }
-#undo { background: #e57373; }
-#excel { background: #81c784; }
+    h2 {
+      text-align: center;
+    }
 
-input[type="date"] {
-  font-size: 16px;
-  padding: 6px;
-  margin: 10px;
-}
+    .botones {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+    }
 
-canvas {
-  max-width: 100%;
-  margin-top: 20px;
-}
-</style>
+    button {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>Registro Bebé 👶</h2>
+  <h2>Registro diario</h2>
 
-<button id="pipi">💧 Pipí</button>
-<button id="caca">💩 Caca</button>
-<button id="undo">↩ Deshacer</button>
-<br>
+  <input type="date" id="picker" />
 
-<label>Semana terminando en:</label><br>
-<input type="date" id="datePicker"><br>
+  <div class="botones">
+    <button onclick="guardar('A')">A</button>
+    <button onclick="guardar('B')">B</button>
+    <button onclick="guardar('C')">C</button>
+  </div>
 
-<button id="excel">⬇ Descargar Excel</button>
+  <canvas id="grafico"></canvas>
 
-<canvas id="chart"></canvas>
+  <script>
+    const picker = document.getElementById("picker");
+    const ctx = document.getElementById("grafico").getContext("2d");
 
-<script>
-let registros = JSON.parse(localStorage.getItem("registros") || "[]");
+    // Fecha por defecto: hoy
+    picker.value = new Date().toISOString().split("T")[0];
 
-function guardar(tipo) {
-  registros.push({
-    tipo,
-    fecha: new Date().toISOString()
-  });
-  localStorage.setItem("registros", JSON.stringify(registros));
-  render();
-}
+    let registros = JSON.parse(localStorage.getItem("registros") || "[]");
 
-function deshacer() {
-  registros.pop();
-  localStorage.setItem("registros", JSON.stringify(registros));
-  render();
-}
-
-document.getElementById("pipi").onclick = () => guardar("pipi");
-document.getElementById("caca").onclick = () => guardar("caca");
-document.getElementById("undo").onclick = deshacer;
-
-const picker = document.getElementById("datePicker");
-picker.valueAsDate = new Date();
-picker.onchange = render;
-
-document.getElementById("excel").onclick = exportarExcel;
-
-let chart;
-
-function render() {
-  const endDate = new Date(picker.value);
-  endDate.setHours(23,59,59,999);
-
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(endDate);
-    d.setDate(d.getDate() - i);
-    days.push(d);
-  }
-
-  const labels = days.map(d =>
-    d.toLocaleDateString("es-AR", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit"
-    })
-  );
-
-  const pipiData = [];
-  const cacaData = [];
-
-  days.forEach(d => {
-    const inicio = new Date(d);
-    inicio.setHours(0,0,0,0);
-    const fin = new Date(d);
-    fin.setHours(23,59,59,999);
-
-    const pipis = registros.filter(r =>
-      r.tipo === "pipi" &&
-      new Date(r.fecha) >= inicio &&
-      new Date(r.fecha) <= fin
-    ).length;
-
-    const cacas = registros.filter(r =>
-      r.tipo === "caca" &&
-      new Date(r.fecha) >= inicio &&
-      new Date(r.fecha) <= fin
-    ).length;
-
-    pipiData.push(pipis || null);
-    cacaData.push(cacas || null);
-  });
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "💧 Pipí", data: pipiData, backgroundColor: "#4fc3f7" },
-        { label: "💩 Caca", data: cacaData, backgroundColor: "#a1887f" }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1 }
+    const chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Cantidad",
+          data: [],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
         }
       }
+    });
+
+    function guardar(tipo) {
+      registros.push({
+        tipo,
+        fecha: new Date().toISOString()
+      });
+
+      localStorage.setItem("registros", JSON.stringify(registros));
+      render();
     }
-  });
-}
 
-function exportarExcel() {
-  let csv = "Tipo,Fecha,Hora\n";
+    function render() {
+      const endDate = new Date(picker.value);
+      endDate.setHours(23, 59, 59, 999);
 
-  registros.forEach(r => {
-    const d = new Date(r.fecha);
-    csv += `${r.tipo},${d.toLocaleDateString("es-AR")},${d.toLocaleTimeString("es-AR")}\n`;
-  });
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        days.push(d);
+      }
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "registro_bebe.csv";
-  link.click();
-}
+      const labels = days.map(d =>
+        d.toLocaleDateString("es-AR", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit"
+        })
+      );
 
-render();
-</script>
+      const conteo = days.map(d => {
+        const inicio = new Date(d);
+        inicio.setHours(0, 0, 0, 0);
+
+        const fin = new Date(d);
+        fin.setHours(23, 59, 59, 999);
+
+        return registros.filter(r => {
+          const f = new Date(r.fecha);
+          return f >= inicio && f <= fin;
+        }).length;
+      });
+
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = conteo;
+      chart.update();
+    }
+
+    picker.addEventListener("change", render);
+
+    render();
+  </script>
 
 </body>
 </html>
