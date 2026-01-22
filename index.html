@@ -8,28 +8,27 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 500px;
-    margin: auto;
-    padding: 10px;
-  }
-  button {
-    width: 100%;
-    padding: 15px;
-    font-size: 18px;
-    margin: 10px 0;
-  }
-  input[type="date"] {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-  }
-  .panel {
-    background: #f5f5f5;
-    padding: 10px;
-    margin-top: 15px;
-  }
+body {
+  font-family: Arial, sans-serif;
+  max-width: 500px;
+  margin: auto;
+  padding: 10px;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  margin: 10px 0;
+}
+input[type="date"] {
+  width: 100%;
+  padding: 10px;
+}
+.panel {
+  background: #f5f5f5;
+  padding: 10px;
+  margin-top: 15px;
+}
 </style>
 </head>
 
@@ -57,7 +56,7 @@ let registros = JSON.parse(localStorage.getItem("registros") || "[]");
 let chart;
 
 /* ======================
-   FECHAS
+   FECHA
 ====================== */
 
 const picker = document.getElementById("fecha");
@@ -71,30 +70,32 @@ function hoyLocalISO() {
 picker.value = hoyLocalISO();
 
 /* ======================
-   REGISTRO
+   REGISTROS
 ====================== */
 
 function agregar(tipo) {
   registros.push({
     tipo,
-    fecha: new Date().toISOString()
+    ts: Date.now()   // 👈 TIMESTAMP LOCAL
   });
   localStorage.setItem("registros", JSON.stringify(registros));
   render();
 }
 
 /* ======================
-   UTIL
+   UTIL FECHAS
 ====================== */
 
-function normalizarDia(d) {
-  const x = new Date(d);
-  x.setHours(0,0,0,0);
-  return x;
+function inicioDia(ts) {
+  const d = new Date(ts);
+  d.setHours(0,0,0,0);
+  return d.getTime();
 }
 
 function ultimos7Dias() {
-  const base = normalizarDia(picker.value);
+  const base = new Date(picker.value);
+  base.setHours(0,0,0,0);
+
   const dias = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(base);
@@ -116,8 +117,10 @@ function renderResumen() {
 
   dias.forEach(d => {
     let p = 0, c = 0;
+    const diaTS = d.getTime();
+
     registros.forEach(r => {
-      if (normalizarDia(r.fecha).getTime() === d.getTime()) {
+      if (inicioDia(r.ts) === diaTS) {
         if (r.tipo === "PIPI") p++;
         if (r.tipo === "CACA") c++;
       }
@@ -139,10 +142,11 @@ function renderResumen() {
 
 function renderLista() {
   const div = document.getElementById("lista");
+
   div.innerHTML =
     "<strong>Registros:</strong><br>" +
     registros.slice().reverse().map(r => {
-      return `${r.tipo} – ${new Date(r.fecha).toLocaleString("es-AR")}`;
+      return `${r.tipo} – ${new Date(r.ts).toLocaleString("es-AR")}`;
     }).join("<br>");
 }
 
@@ -156,14 +160,14 @@ function renderGrafico() {
   const caca = [];
 
   registros.forEach(r => {
-    const f = new Date(r.fecha);
-    const dia = normalizarDia(f);
+    const d = new Date(r.ts);
+    const dia = new Date(d);
+    dia.setHours(0,0,0,0);
 
-    dias.forEach(d => {
-      if (d.getTime() === dia.getTime()) {
-        const hora = f.getHours() + f.getMinutes() / 60;
-
-        const punto = { x: d, y: hora };
+    dias.forEach(ref => {
+      if (dia.getTime() === ref.getTime()) {
+        const hora = d.getHours() + d.getMinutes() / 60;
+        const punto = { x: ref, y: hora };
 
         if (r.tipo === "PIPI") pipi.push(punto);
         if (r.tipo === "CACA") caca.push(punto);
@@ -185,11 +189,11 @@ function renderGrafico() {
       scales: {
         x: {
           type: "time",
+          min: dias[0],
+          max: dias[dias.length - 1],
           time: {
             unit: "day",
-            displayFormats: {
-              day: "EEE dd/MM"
-            }
+            displayFormats: { day: "EEE dd/MM" }
           },
           title: { display: true, text: "Día" }
         },
