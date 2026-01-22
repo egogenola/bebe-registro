@@ -49,10 +49,28 @@ input[type="date"] {
 
 <script>
 /* ======================
-   ESTADO
+   CARGA + MIGRACIÓN
 ====================== */
 
 let registros = JSON.parse(localStorage.getItem("registros") || "[]");
+
+// 🔁 MIGRAR REGISTROS VIEJOS
+registros = registros
+  .map(r => {
+    if (typeof r.ts === "number") return r;
+
+    if (r.fecha) {
+      const d = new Date(r.fecha);
+      if (!isNaN(d)) {
+        return { tipo: r.tipo, ts: d.getTime() };
+      }
+    }
+    return null;
+  })
+  .filter(Boolean);
+
+localStorage.setItem("registros", JSON.stringify(registros));
+
 let chart;
 
 /* ======================
@@ -61,22 +79,22 @@ let chart;
 
 const picker = document.getElementById("fecha");
 
-function hoyLocalISO() {
+function hoyISO() {
   const d = new Date();
   d.setHours(0,0,0,0);
   return d.toISOString().split("T")[0];
 }
 
-picker.value = hoyLocalISO();
+picker.value = hoyISO();
 
 /* ======================
-   REGISTROS
+   REGISTRO
 ====================== */
 
 function agregar(tipo) {
   registros.push({
     tipo,
-    ts: Date.now()   // 👈 TIMESTAMP LOCAL
+    ts: Date.now()
   });
   localStorage.setItem("registros", JSON.stringify(registros));
   render();
@@ -161,11 +179,10 @@ function renderGrafico() {
 
   registros.forEach(r => {
     const d = new Date(r.ts);
-    const dia = new Date(d);
-    dia.setHours(0,0,0,0);
+    const dia = inicioDia(r.ts);
 
     dias.forEach(ref => {
-      if (dia.getTime() === ref.getTime()) {
+      if (ref.getTime() === dia) {
         const hora = d.getHours() + d.getMinutes() / 60;
         const punto = { x: ref, y: hora };
 
