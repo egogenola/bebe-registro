@@ -15,20 +15,18 @@
       margin: auto;
     }
 
-    h2 {
-      text-align: center;
-    }
-
-    button {
-      width: 48%;
-      padding: 15px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
+    h2 { text-align: center; }
 
     .botones {
       display: flex;
-      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
     }
 
     input[type="date"] {
@@ -38,9 +36,7 @@
       margin-top: 10px;
     }
 
-    canvas {
-      margin-top: 20px;
-    }
+    canvas { margin-top: 20px; }
   </style>
 </head>
 
@@ -69,24 +65,20 @@
       type: "scatter",
       data: {
         datasets: [
-          {
-            label: "PIPÍ",
-            data: [],
-            backgroundColor: "blue"
-          },
-          {
-            label: "CACA",
-            data: [],
-            backgroundColor: "brown"
-          }
+          { label: "PIPÍ", data: [], backgroundColor: "blue" },
+          { label: "CACA", data: [], backgroundColor: "brown" }
         ]
       },
       options: {
         responsive: true,
         scales: {
           x: {
-            type: "category",
-            labels: []
+            min: -0.5,
+            max: 6.5,
+            ticks: {
+              stepSize: 1,
+              callback: v => etiquetasX[v] || ""
+            }
           },
           y: {
             min: 0,
@@ -99,6 +91,8 @@
         }
       }
     });
+
+    let etiquetasX = [];
 
     function guardar(tipo) {
       registros.push({
@@ -120,7 +114,7 @@
         days.push(d);
       }
 
-      chart.options.scales.x.labels = days.map(d =>
+      etiquetasX = days.map(d =>
         d.toLocaleDateString("es-AR", {
           weekday: "short",
           day: "2-digit",
@@ -141,12 +135,12 @@
             f.getFullYear() === d.getFullYear()
           ) {
             const hora = f.getHours() + f.getMinutes() / 60;
-            const offset = r.tipo === "PIPÍ" ? -0.1 : 0.1;
+            const offset = r.tipo === "PIPÍ" ? -0.15 : 0.15;
 
             if (r.tipo === "PIPÍ") {
-              pipi.push({ x: chart.options.scales.x.labels[i], y: hora + offset });
+              pipi.push({ x: i + offset, y: hora });
             } else {
-              caca.push({ x: chart.options.scales.x.labels[i], y: hora + offset });
+              caca.push({ x: i + offset, y: hora });
             }
           }
         });
