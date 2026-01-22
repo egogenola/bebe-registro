@@ -1,163 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registro Bebé</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 15px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    h2 {
-      text-align: center;
-    }
-
-    .botones {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    button {
-      flex: 1;
-      padding: 15px;
-      font-size: 16px;
-    }
-
-    input[type="date"] {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-
-    canvas {
-      margin-top: 20px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRUEBA</title>
 </head>
 
 <body>
 
-  <h2>Registro diario</h2>
+  <h1>PRUEBA SIMPLE</h1>
 
-  <div class="botones">
-    <button onclick="guardar('PIPÍ')">PIPÍ</button>
-    <button onclick="guardar('CACA')">CACA</button>
-  </div>
-
-  <input type="date" id="picker">
-
-  <canvas id="grafico"></canvas>
-
-  <script>
-    const picker = document.getElementById("picker");
-    picker.value = new Date().toISOString().split("T")[0];
-
-    let registros = JSON.parse(localStorage.getItem("registros") || "[]");
-
-    const ctx = document.getElementById("grafico");
-
-    const chart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: "PIPÍ",
-            data: [],
-            borderColor: "transparent",
-            backgroundColor: "blue",
-            pointRadius: 6
-          },
-          {
-            label: "CACA",
-            data: [],
-            borderColor: "transparent",
-            backgroundColor: "brown",
-            pointRadius: 6
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            min: 0,
-            max: 24,
-            ticks: {
-              stepSize: 4,
-              callback: v => v + "h"
-            }
-          }
-        }
-      }
-    });
-
-    function guardar(tipo) {
-      registros.push({
-        tipo,
-        fecha: new Date().toISOString()
-      });
-      localStorage.setItem("registros", JSON.stringify(registros));
-      render();
-    }
-
-    function render() {
-      const endDate = new Date(picker.value);
-      endDate.setHours(23, 59, 59, 999);
-
-      const days = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(endDate);
-        d.setDate(d.getDate() - i);
-        days.push(d);
-      }
-
-      const labels = days.map(d =>
-        d.toLocaleDateString("es-AR", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit"
-        })
-      );
-
-      const pipi = Array(7).fill(null);
-      const caca = Array(7).fill(null);
-
-      registros.forEach(r => {
-        const f = new Date(r.fecha);
-
-        days.forEach((d, i) => {
-          if (
-            f.getDate() === d.getDate() &&
-            f.getMonth() === d.getMonth() &&
-            f.getFullYear() === d.getFullYear()
-          ) {
-            const hora = f.getHours() + f.getMinutes() / 60;
-
-            if (r.tipo === "PIPÍ") pipi[i] = hora;
-            if (r.tipo === "CACA") caca[i] = hora;
-          }
-        });
-      });
-
-      chart.data.labels = labels;
-      chart.data.datasets[0].data = pipi;
-      chart.data.datasets[1].data = caca;
-      chart.update();
-    }
-
-    picker.addEventListener("change", render);
-    render();
-  </script>
+  <button onclick="alert('CLICK PIPI')">PIPÍ</button>
+  <button onclick="alert('CLICK CACA')">CACA</button>
 
 </body>
 </html>
