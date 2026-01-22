@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Registro diario</title>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
   <style>
     body {
@@ -22,7 +24,6 @@
       padding: 15px;
       font-size: 18px;
       margin: 10px 0;
-      cursor: pointer;
     }
 
     input[type="date"] {
@@ -47,92 +48,64 @@
 
 <body>
 
-  <h1>Registro diario</h1>
+<h1>Registro diario</h1>
 
-  <button onclick="agregarRegistro('PIPI')">PIPÍ</button>
-  <button onclick="agregarRegistro('CACA')">CACA</button>
+<button onclick="agregarRegistro('PIPI')">PIPÍ</button>
+<button onclick="agregarRegistro('CACA')">CACA</button>
 
-  <input type="date" id="fecha" />
+<input type="date" id="fecha">
 
-  <div class="panel" id="resumen"></div>
+<div class="panel" id="resumen"></div>
 
-  <canvas id="grafico"></canvas>
+<canvas id="grafico"></canvas>
 
-  <div class="panel" id="registros"></div>
+<div class="panel" id="registros"></div>
 
 <script>
-/* ======================
-   ESTADO GLOBAL
-====================== */
+/* =====================
+   ESTADO
+===================== */
 
 let registros = JSON.parse(localStorage.getItem("registros") || "[]");
 let chart;
 
-/* ======================
+/* =====================
    FECHA
-====================== */
+===================== */
 
-const inputFecha = document.getElementById("fecha");
+const picker = document.getElementById("fecha");
 
-function hoyLocal() {
+function hoyISO() {
   const d = new Date();
   d.setHours(0,0,0,0);
-  return d;
+  return d.toISOString().split("T")[0];
 }
 
-function setFechaHoy() {
-  const h = hoyLocal();
-  inputFecha.value = h.toISOString().split("T")[0];
-}
+picker.value = hoyISO();
 
-function getFechaSeleccionada() {
-  const [y,m,d] = inputFecha.value.split("-");
-  return new Date(y, m - 1, d);
-}
-
-/* ======================
+/* =====================
    REGISTROS
-====================== */
-
-function guardarRegistros() {
-  localStorage.setItem("registros", JSON.stringify(registros));
-}
+===================== */
 
 function agregarRegistro(tipo) {
-  const fecha = getFechaSeleccionada();
-  const ahora = new Date();
+  registros.push({
+    tipo,
+    fecha: new Date().toISOString()
+  });
 
-  const timestamp = new Date(
-    fecha.getFullYear(),
-    fecha.getMonth(),
-    fecha.getDate(),
-    ahora.getHours(),
-    ahora.getMinutes(),
-    ahora.getSeconds()
-  ).toISOString();
-
-  registros.push({ tipo, timestamp });
-
-  guardarRegistros();
-  actualizarVista();
+  localStorage.setItem("registros", JSON.stringify(registros));
+  render();
 }
 
-/* ======================
-   UTIL FECHAS
-====================== */
-
-function mismaFecha(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
+/* =====================
+   UTIL
+===================== */
 
 function ultimos7Dias() {
-  const base = getFechaSeleccionada();
-  const dias = [];
+  const base = new Date(picker.value);
+  base.setHours(0,0,0,0);
 
+  const dias = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(base);
     d.setDate(base.getDate() - i);
@@ -141,19 +114,9 @@ function ultimos7Dias() {
   return dias;
 }
 
-/* ======================
-   VISTA
-====================== */
-
-function actualizarVista() {
-  renderResumen();
-  renderRegistros();
-  renderGrafico();
-}
-
-/* ======================
+/* =====================
    RESUMEN
-====================== */
+===================== */
 
 function renderResumen() {
   const cont = document.getElementById("resumen");
@@ -161,117 +124,131 @@ function renderResumen() {
 
   let html = "<strong>Últimos 7 días:</strong><br>";
 
-  dias.forEach(dia => {
-    let pipi = 0;
-    let caca = 0;
+  dias.forEach(d => {
+    let p = 0, c = 0;
 
     registros.forEach(r => {
-      const fr = new Date(r.timestamp);
-      if (mismaFecha(fr, dia)) {
-        if (r.tipo === "PIPI") pipi++;
-        if (r.tipo === "CACA") caca++;
-      }
-    });
-
-    html += `${dia.toLocaleDateString("es-AR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit"
-    })}: 💧 ${pipi} | 💩 ${caca}<br>`;
-  });
-
-  cont.innerHTML = html;
-}
-
-/* ======================
-   LISTADO
-====================== */
-
-function renderRegistros() {
-  const cont = document.getElementById("registros");
-
-  let html = "<strong>Registros:</strong><br>";
-
-  registros
-    .slice()
-    .reverse()
-    .forEach(r => {
-      const f = new Date(r.timestamp);
-      html += `${r.tipo} – ${f.toLocaleString("es-AR")}<br>`;
-    });
-
-  cont.innerHTML = html;
-}
-
-/* ======================
-   GRAFICO
-====================== */
-
-function renderGrafico() {
-  const dias = ultimos7Dias();
-
-  const labels = dias.map(d =>
-    d.toLocaleDateString("es-AR", { weekday: "short" })
-  );
-
-  const pipiData = [];
-  const cacaData = [];
-
-  dias.forEach(dia => {
-    let p = 0;
-    let c = 0;
-
-    registros.forEach(r => {
-      const fr = new Date(r.timestamp);
-      if (mismaFecha(fr, dia)) {
+      const fr = new Date(r.fecha);
+      if (fr.toDateString() === d.toDateString()) {
         if (r.tipo === "PIPI") p++;
         if (r.tipo === "CACA") c++;
       }
     });
 
-    pipiData.push(p);
-    cacaData.push(c);
+    html += `${d.toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit"
+    })}: 💧 ${p} | 💩 ${c}<br>`;
+  });
+
+  cont.innerHTML = html;
+}
+
+/* =====================
+   LISTADO
+===================== */
+
+function renderRegistros() {
+  const cont = document.getElementById("registros");
+
+  cont.innerHTML = "<strong>Registros:</strong><br>" +
+    registros.slice().reverse().map(r => {
+      const f = new Date(r.fecha);
+      return `${r.tipo} – ${f.toLocaleString("es-AR")}`;
+    }).join("<br>");
+}
+
+/* =====================
+   GRAFICO (SCATTER)
+===================== */
+
+function renderGrafico() {
+  const dias = ultimos7Dias();
+
+  const pipi = [];
+  const caca = [];
+
+  registros.forEach(r => {
+    const f = new Date(r.fecha);
+
+    dias.forEach(d => {
+      if (f.toDateString() === d.toDateString()) {
+        const xLabel = d.toLocaleDateString("es-AR", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit"
+        });
+
+        const y = f.getHours() + f.getMinutes() / 60;
+
+        const point = { x: xLabel, y };
+
+        if (r.tipo === "PIPI") pipi.push(point);
+        if (r.tipo === "CACA") caca.push(point);
+      }
+    });
   });
 
   if (chart) chart.destroy();
 
   chart = new Chart(document.getElementById("grafico"), {
-    type: "line",
+    type: "scatter",
     data: {
-      labels,
       datasets: [
         {
           label: "PIPÍ",
-          data: pipiData,
-          borderWidth: 2
+          data: pipi,
+          pointRadius: 6
         },
         {
           label: "CACA",
-          data: cacaData,
-          borderWidth: 2
+          data: caca,
+          pointRadius: 6
         }
       ]
     },
     options: {
-      responsive: true,
       scales: {
         y: {
-          beginAtZero: true,
-          precision: 0
+          min: 0,
+          max: 24,
+          ticks: {
+            callback: v => {
+              const h = Math.floor(v);
+              const m = Math.round((v - h) * 60);
+              return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;
+            }
+          },
+          title: {
+            display: true,
+            text: "Hora"
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Día"
+          }
         }
       }
     }
   });
 }
 
-/* ======================
-   INIT
-====================== */
+/* =====================
+   RENDER
+===================== */
 
-setFechaHoy();
-actualizarVista();
+function render() {
+  renderResumen();
+  renderGrafico();
+  renderRegistros();
+}
 
-inputFecha.addEventListener("change", actualizarVista);
+picker.addEventListener("change", render);
+
+render();
 </script>
 
 </body>
