@@ -5,26 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro Bebé</title>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 400px;
+      padding: 15px;
+      max-width: 600px;
       margin: auto;
+    }
+
+    h2 {
       text-align: center;
     }
 
     button {
-      width: 100%;
+      width: 48%;
       padding: 15px;
-      font-size: 18px;
+      font-size: 16px;
       margin-top: 10px;
     }
 
-    #log {
+    .botones {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    canvas {
       margin-top: 20px;
-      text-align: left;
-      font-size: 14px;
     }
   </style>
 </head>
@@ -33,35 +48,116 @@
 
   <h2>Registro diario</h2>
 
-  <button onclick="guardar('PIPÍ')">PIPÍ</button>
-  <button onclick="guardar('CACA')">CACA</button>
+  <div class="botones">
+    <button onclick="guardar('PIPÍ')">PIPÍ</button>
+    <button onclick="guardar('CACA')">CACA</button>
+  </div>
 
-  <div id="log"></div>
+  <input type="date" id="picker">
+
+  <canvas id="grafico"></canvas>
 
   <script>
+    const picker = document.getElementById("picker");
+    picker.value = new Date().toISOString().split("T")[0];
+
     let registros = JSON.parse(localStorage.getItem("registros") || "[]");
-    const log = document.getElementById("log");
+
+    const ctx = document.getElementById("grafico").getContext("2d");
+
+    const chart = new Chart(ctx, {
+      type: "scatter",
+      data: {
+        datasets: [
+          {
+            label: "PIPÍ",
+            data: [],
+            backgroundColor: "blue"
+          },
+          {
+            label: "CACA",
+            data: [],
+            backgroundColor: "brown"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: "category",
+            labels: []
+          },
+          y: {
+            min: 0,
+            max: 24,
+            ticks: {
+              stepSize: 4,
+              callback: v => v + "h"
+            }
+          }
+        }
+      }
+    });
 
     function guardar(tipo) {
-      const dato = {
-        tipo: tipo,
+      registros.push({
+        tipo,
         fecha: new Date().toISOString()
-      };
-
-      registros.push(dato);
+      });
       localStorage.setItem("registros", JSON.stringify(registros));
       render();
     }
 
     function render() {
-      log.innerHTML = "";
+      const endDate = new Date(picker.value);
+      endDate.setHours(23,59,59,999);
+
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        days.push(d);
+      }
+
+      chart.options.scales.x.labels = days.map(d =>
+        d.toLocaleDateString("es-AR", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit"
+        })
+      );
+
+      const pipi = [];
+      const caca = [];
 
       registros.forEach(r => {
-        const f = new Date(r.fecha).toLocaleString("es-AR");
-        log.innerHTML += `<div>${r.tipo} - ${f}</div>`;
+        const f = new Date(r.fecha);
+
+        days.forEach((d, i) => {
+          if (
+            f.getDate() === d.getDate() &&
+            f.getMonth() === d.getMonth() &&
+            f.getFullYear() === d.getFullYear()
+          ) {
+            const hora = f.getHours() + f.getMinutes() / 60;
+            const offset = r.tipo === "PIPÍ" ? -0.1 : 0.1;
+
+            if (r.tipo === "PIPÍ") {
+              pipi.push({ x: chart.options.scales.x.labels[i], y: hora + offset });
+            } else {
+              caca.push({ x: chart.options.scales.x.labels[i], y: hora + offset });
+            }
+          }
+        });
       });
+
+      chart.data.datasets[0].data = pipi;
+      chart.data.datasets[1].data = caca;
+      chart.update();
     }
 
+    picker.addEventListener("change", render);
     render();
   </script>
 
