@@ -1,57 +1,44 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Registro diario</title>
+<meta charset="UTF-8">
+<title>Registro diario</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 500px;
-      margin: auto;
-      padding: 10px;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    button {
-      width: 100%;
-      padding: 15px;
-      font-size: 18px;
-      margin: 10px 0;
-    }
-
-    input[type="date"] {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin: 10px 0;
-    }
-
-    .panel {
-      background: #f5f5f5;
-      padding: 10px;
-      margin-top: 15px;
-      font-size: 14px;
-    }
-
-    canvas {
-      margin-top: 20px;
-    }
-  </style>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 500px;
+    margin: auto;
+    padding: 10px;
+  }
+  button {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    margin: 10px 0;
+  }
+  input[type="date"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+  }
+  .panel {
+    background: #f5f5f5;
+    padding: 10px;
+    margin-top: 15px;
+  }
+</style>
 </head>
 
 <body>
 
-<h1>Registro diario</h1>
+<h2>Registro diario</h2>
 
-<button onclick="agregarRegistro('PIPI')">PIPÍ</button>
-<button onclick="agregarRegistro('CACA')">CACA</button>
+<button onclick="agregar('PIPI')">PIPÍ</button>
+<button onclick="agregar('CACA')">CACA</button>
 
 <input type="date" id="fecha">
 
@@ -59,52 +46,55 @@
 
 <canvas id="grafico"></canvas>
 
-<div class="panel" id="registros"></div>
+<div class="panel" id="lista"></div>
 
 <script>
-/* =====================
+/* ======================
    ESTADO
-===================== */
+====================== */
 
 let registros = JSON.parse(localStorage.getItem("registros") || "[]");
 let chart;
 
-/* =====================
-   FECHA
-===================== */
+/* ======================
+   FECHAS
+====================== */
 
 const picker = document.getElementById("fecha");
 
-function hoyISO() {
+function hoyLocalISO() {
   const d = new Date();
   d.setHours(0,0,0,0);
   return d.toISOString().split("T")[0];
 }
 
-picker.value = hoyISO();
+picker.value = hoyLocalISO();
 
-/* =====================
-   REGISTROS
-===================== */
+/* ======================
+   REGISTRO
+====================== */
 
-function agregarRegistro(tipo) {
+function agregar(tipo) {
   registros.push({
     tipo,
     fecha: new Date().toISOString()
   });
-
   localStorage.setItem("registros", JSON.stringify(registros));
   render();
 }
 
-/* =====================
+/* ======================
    UTIL
-===================== */
+====================== */
+
+function normalizarDia(d) {
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  return x;
+}
 
 function ultimos7Dias() {
-  const base = new Date(picker.value);
-  base.setHours(0,0,0,0);
-
+  const base = normalizarDia(picker.value);
   const dias = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(base);
@@ -114,22 +104,20 @@ function ultimos7Dias() {
   return dias;
 }
 
-/* =====================
+/* ======================
    RESUMEN
-===================== */
+====================== */
 
 function renderResumen() {
-  const cont = document.getElementById("resumen");
+  const div = document.getElementById("resumen");
   const dias = ultimos7Dias();
 
   let html = "<strong>Últimos 7 días:</strong><br>";
 
   dias.forEach(d => {
     let p = 0, c = 0;
-
     registros.forEach(r => {
-      const fr = new Date(r.fecha);
-      if (fr.toDateString() === d.toDateString()) {
+      if (normalizarDia(r.fecha).getTime() === d.getTime()) {
         if (r.tipo === "PIPI") p++;
         if (r.tipo === "CACA") c++;
       }
@@ -142,50 +130,43 @@ function renderResumen() {
     })}: 💧 ${p} | 💩 ${c}<br>`;
   });
 
-  cont.innerHTML = html;
+  div.innerHTML = html;
 }
 
-/* =====================
-   LISTADO
-===================== */
+/* ======================
+   LISTA
+====================== */
 
-function renderRegistros() {
-  const cont = document.getElementById("registros");
-
-  cont.innerHTML = "<strong>Registros:</strong><br>" +
+function renderLista() {
+  const div = document.getElementById("lista");
+  div.innerHTML =
+    "<strong>Registros:</strong><br>" +
     registros.slice().reverse().map(r => {
-      const f = new Date(r.fecha);
-      return `${r.tipo} – ${f.toLocaleString("es-AR")}`;
+      return `${r.tipo} – ${new Date(r.fecha).toLocaleString("es-AR")}`;
     }).join("<br>");
 }
 
-/* =====================
-   GRAFICO (SCATTER)
-===================== */
+/* ======================
+   GRAFICO
+====================== */
 
 function renderGrafico() {
   const dias = ultimos7Dias();
-
   const pipi = [];
   const caca = [];
 
   registros.forEach(r => {
     const f = new Date(r.fecha);
+    const dia = normalizarDia(f);
 
     dias.forEach(d => {
-      if (f.toDateString() === d.toDateString()) {
-        const xLabel = d.toLocaleDateString("es-AR", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit"
-        });
+      if (d.getTime() === dia.getTime()) {
+        const hora = f.getHours() + f.getMinutes() / 60;
 
-        const y = f.getHours() + f.getMinutes() / 60;
+        const punto = { x: d, y: hora };
 
-        const point = { x: xLabel, y };
-
-        if (r.tipo === "PIPI") pipi.push(point);
-        if (r.tipo === "CACA") caca.push(point);
+        if (r.tipo === "PIPI") pipi.push(punto);
+        if (r.tipo === "CACA") caca.push(punto);
       }
     });
   });
@@ -196,39 +177,32 @@ function renderGrafico() {
     type: "scatter",
     data: {
       datasets: [
-        {
-          label: "PIPÍ",
-          data: pipi,
-          pointRadius: 6
-        },
-        {
-          label: "CACA",
-          data: caca,
-          pointRadius: 6
-        }
+        { label: "PIPÍ", data: pipi, pointRadius: 6 },
+        { label: "CACA", data: caca, pointRadius: 6 }
       ]
     },
     options: {
       scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "day",
+            displayFormats: {
+              day: "EEE dd/MM"
+            }
+          },
+          title: { display: true, text: "Día" }
+        },
         y: {
           min: 0,
           max: 24,
+          title: { display: true, text: "Hora" },
           ticks: {
             callback: v => {
               const h = Math.floor(v);
               const m = Math.round((v - h) * 60);
-              return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;
+              return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
             }
-          },
-          title: {
-            display: true,
-            text: "Hora"
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: "Día"
           }
         }
       }
@@ -236,18 +210,17 @@ function renderGrafico() {
   });
 }
 
-/* =====================
+/* ======================
    RENDER
-===================== */
+====================== */
 
 function render() {
   renderResumen();
   renderGrafico();
-  renderRegistros();
+  renderLista();
 }
 
 picker.addEventListener("change", render);
-
 render();
 </script>
 
