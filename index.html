@@ -1,144 +1,74 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registro diario</title>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro simple</title>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 15px;
-      max-width: 600px;
+      padding: 20px;
+      max-width: 500px;
       margin: auto;
     }
 
-    h2 {
-      text-align: center;
-    }
-
-    .botones {
-      display: flex;
-      gap: 10px;
-      margin: 15px 0;
-    }
-
     button {
-      flex: 1;
-      padding: 15px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    canvas {
-      margin-top: 20px;
-    }
-
-    input[type="date"] {
       width: 100%;
-      padding: 10px;
-      font-size: 16px;
+      padding: 15px;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    ul {
+      margin-top: 20px;
     }
   </style>
 </head>
 
 <body>
 
-  <h2>Registro diario</h2>
+  <h2>Registro</h2>
 
-  <input type="date" id="picker" />
+  <button id="btnA">A</button>
+  <button id="btnB">B</button>
 
-  <div class="botones">
-    <button onclick="guardar('A')">A</button>
-    <button onclick="guardar('B')">B</button>
-    <button onclick="guardar('C')">C</button>
-  </div>
-
-  <canvas id="grafico"></canvas>
+  <ul id="lista"></ul>
 
   <script>
-    const picker = document.getElementById("picker");
-    const ctx = document.getElementById("grafico").getContext("2d");
-
-    // Fecha por defecto: hoy
-    picker.value = new Date().toISOString().split("T")[0];
-
     let registros = JSON.parse(localStorage.getItem("registros") || "[]");
 
-    const chart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: [],
-        datasets: [{
-          label: "Cantidad",
-          data: [],
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 }
-          }
-        }
-      }
-    });
+    const lista = document.getElementById("lista");
 
     function guardar(tipo) {
-      registros.push({
-        tipo,
-        fecha: new Date().toISOString()
-      });
+      const dato = {
+        tipo: tipo,
+        fecha: new Date().toLocaleString("es-AR")
+      };
 
+      registros.push(dato);
       localStorage.setItem("registros", JSON.stringify(registros));
+
       render();
     }
 
     function render() {
-      const endDate = new Date(picker.value);
-      endDate.setHours(23, 59, 59, 999);
+      lista.innerHTML = "";
 
-      const days = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(endDate);
-        d.setDate(d.getDate() - i);
-        days.push(d);
-      }
-
-      const labels = days.map(d =>
-        d.toLocaleDateString("es-AR", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit"
-        })
-      );
-
-      const conteo = days.map(d => {
-        const inicio = new Date(d);
-        inicio.setHours(0, 0, 0, 0);
-
-        const fin = new Date(d);
-        fin.setHours(23, 59, 59, 999);
-
-        return registros.filter(r => {
-          const f = new Date(r.fecha);
-          return f >= inicio && f <= fin;
-        }).length;
+      registros.forEach(r => {
+        const li = document.createElement("li");
+        li.textContent = r.tipo + " - " + r.fecha;
+        lista.appendChild(li);
       });
-
-      chart.data.labels = labels;
-      chart.data.datasets[0].data = conteo;
-      chart.update();
     }
 
-    picker.addEventListener("change", render);
+    document.getElementById("btnA").addEventListener("click", function () {
+      guardar("A");
+    });
+
+    document.getElementById("btnB").addEventListener("click", function () {
+      guardar("B");
+    });
 
     render();
   </script>
